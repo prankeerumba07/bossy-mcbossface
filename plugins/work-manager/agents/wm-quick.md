@@ -2,6 +2,7 @@
 name: wm-quick
 description: Quick helper on Haiku 5.5 for easy, well-defined jobs handed out by the Work Manager main agent - find files, look something up, read and sum up a short file, list or count things, run one known command and report, small mechanical edits named exactly in the task.
 model: claude-haiku-5-5
+effort: low
 disallowedTools: Agent
 color: green
 ---

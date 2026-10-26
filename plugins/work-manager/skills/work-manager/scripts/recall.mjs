@@ -2,7 +2,7 @@
 // Find past work in Claude conversations.
 //
 //   node recall.mjs recent [--days 7] [--project NAME] [--limit 15] [--all]   (--all: include script runs)
-//   node recall.mjs search WORDS... [--days N] [--since YYYY-MM-DD] [--project NAME] [--deep] [--limit 10]
+//   node recall.mjs search WORDS... [--days N] [--since YYYY-MM-DD] [--project NAME] [--deep] [--limit 10] [--all]
 //   node recall.mjs show ID [--full] [--max 30000]
 //   node recall.mjs import PATH/TO/conversations.json     (claude.ai "Export data" file)
 //
@@ -69,7 +69,7 @@ export function search(query, args = {}) {
   const ws = words(query);
   if (!ws.length) return [];
   const results = [];
-  for (const r of filterRecords(Object.values(loadIndex()), args)) {
+  for (const r of filterRecords(Object.values(loadIndex()), args).filter((x) => args.all || !x.automated)) {
     const S = (v) => (typeof v === 'string' ? v : v == null ? '' : String(v));
     const fields = {
       title: [S(r.title)], project: [S(r.project)], prompts: (r.prompts || []).map((p) => S(p?.text)),

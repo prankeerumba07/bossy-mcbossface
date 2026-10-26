@@ -36,6 +36,7 @@ export const DEFAULT_CONFIG = {
   briefRecentDays: 7,
   terminalLogFullCommands: false,
   autoRoute: true,
+  readHints: true,
 };
 
 export function ensureData() {
@@ -133,6 +134,11 @@ export function liveSessions() {
     out.push(s);
   }
   return out;
+}
+
+// Runs started by scripts or other agents (claude -p in a temporary folder, the SDK), not by the user.
+export function isScriptRun(x) {
+  return /^(\/private)?\/(tmp|var\/folders)\//.test(String(x?.cwd || '')) || String(x?.entrypoint || '').startsWith('sdk');
 }
 
 export function whereLabel(entrypoint) {

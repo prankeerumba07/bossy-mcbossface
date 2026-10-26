@@ -6,7 +6,8 @@ Bossy McBossface is a Claude plugin called **Work Manager**. It turns Claude int
 
 - **remembers** what you did in past Claude Code conversations (days, months, years ago) and picks up where you stopped,
 - **watches** your terminal windows — what is running, which Claude model each conversation uses, what failed,
-- **picks the right model for every request** automatically: each prompt is graded easy / medium / hard before Claude sees it, and the work goes to **Haiku 5.5** for easy chores, **Sonnet 5.5** for real work, **Opus 5.5** for the hard stuff,
+- **picks the right model for every request — and every step of it** automatically: each prompt (and each step of a multi-step prompt) is graded easy / medium / hard before Claude sees it, and Claude is told to hand the work to **Haiku 5.5** for easy chores, **Sonnet 5.5** for real work, **Opus 5.5** for the hard stuff, each at a matching effort level so the easy parts don't burn tokens (it stays quiet when your model already fits or the grade is unsure),
+- **reads your other conversations when you ask** — "go and read this conversation about the login page", "read my last conversation" — no links or pasting,
 - **delegates** big jobs to those helpers and runs them side by side,
 - **checks everything** they hand back with independent checker helpers (it does not take "done" for an answer),
 - and **shows it all live** on a local dashboard: who is working, on which model, doing what, how long it took, how long is left, and what needs you.

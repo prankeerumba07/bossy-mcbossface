@@ -10,7 +10,7 @@
       "name": "work-manager",
       "source": "./plugins/work-manager",
       "description": "Main agent + Haiku/Sonnet/Opus 5.5 helpers + memory of past Claude Code conversations + terminal watcher + live local dashboard.",
-      "version": "1.1.1",
+      "version": "1.2.0",
       "category": "productivity",
       "keywords": ["orchestration", "agents", "dashboard", "memory", "terminals"]
     }

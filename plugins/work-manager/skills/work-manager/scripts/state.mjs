@@ -235,7 +235,7 @@ export function buildState({ term } = {}) {
     else if (e.ev === 'PostToolUse') s.clearAt = e.ts;
     else if (e.ev === 'Notification' && ATTENTION_NTYPES.has(e.ntype)) { s.ask = e.msg; s.askAt = e.ts; }
     else if (e.ev === 'StopFailure') { s.failed = e.error || 'API error'; s.failedAt = e.ts; }
-    else if (e.ev === 'Route') s.route = { level: e.level, model: e.model, main: modelLabel(e.main), noted: e.noted, at: e.ts };
+    else if (e.ev === 'Route') s.route = { level: e.level, model: e.model, main: modelLabel(e.main), noted: e.noted, steps: e.steps || null, at: e.ts };
     lastBySid.set(e.sid, s);
   }
   const main = sessions.map((s) => {

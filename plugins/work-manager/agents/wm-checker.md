@@ -2,6 +2,7 @@
 name: wm-checker
 description: Independent checker on Sonnet 5.5 for easy and medium tasks; verifies a helper's claimed result for the Work Manager main agent. Reads and runs checks; never edits.
 model: claude-sonnet-5-5
+effort: medium
 disallowedTools: Agent, Edit, Write, NotebookEdit
 color: orange
 ---

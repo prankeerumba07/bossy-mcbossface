@@ -2,6 +2,7 @@
 name: wm-expert
 description: Expert on Opus 5.5 for the hardest jobs handed out by the Work Manager main agent - design and architecture decisions, bugs with an unclear cause, security or money-related logic, large or risky changes, and work where a mistake is costly.
 model: claude-opus-5-5
+effort: xhigh
 disallowedTools: Agent
 color: purple
 ---

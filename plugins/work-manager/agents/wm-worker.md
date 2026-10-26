@@ -2,6 +2,7 @@
 name: wm-worker
 description: Worker on Sonnet 5.5 for medium jobs handed out by the Work Manager main agent - code changes across a few files, research across many files or pages, writing tests or documents, debugging with a known way to reproduce the problem.
 model: claude-sonnet-5-5
+effort: medium
 disallowedTools: Agent
 color: blue
 ---

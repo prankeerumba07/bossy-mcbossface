@@ -2,6 +2,7 @@
 name: wm-expert-checker
 description: Independent checker on Opus 5.5 for hard tasks; verifies a helper's claimed result for the Work Manager main agent. Reads and runs checks; never edits.
 model: claude-opus-5-5
+effort: high
 disallowedTools: Agent, Edit, Write, NotebookEdit
 color: red
 ---

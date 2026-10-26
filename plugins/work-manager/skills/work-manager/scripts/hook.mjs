@@ -9,9 +9,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 import { logFailures } from './terminals.mjs';
-import { routeNote } from './route.mjs';
+import { routeNote, readNote, asksForSteps } from './route.mjs';
 import {
-  FILES, SKILL_DIR, CLAUDE_DIR, PLUGIN_ROOT, ensureData, readJSON, writeJSON, readTail, readEvents, rotateIfBig, config, liveSessions,
+  FILES, SKILL_DIR, CLAUDE_DIR, PLUGIN_ROOT, ensureData, readJSON, writeJSON, readTail, readEvents, rotateIfBig, config, liveSessions, isScriptRun,
   whereLabel, projectName, short, fmtWhen, contentText, pidAlive, processCommand, isMain, cleanPrompt, isDashboardProcess, transcriptActivity,
 } from './lib.mjs';
 
@@ -194,10 +194,10 @@ export function brief(currentSid, cfg = config()) {
   const startCmd = `node ${q(path.join(scripts, 'dashboard.mjs'))} url`;
   lines.push(`Live dashboard: ${dash ? `http://127.0.0.1:${dash.port}` : cfg.autoStartDashboard ? `starting (${startCmd} prints the link)` : `not running (start it with: ${startCmd})`}`);
 
-  const others = liveSessions().filter((s) => s.sessionId !== currentSid);
+  const others = liveSessions().filter((s) => s.sessionId !== currentSid && !isScriptRun(s));
   if (others.length) {
     lines.push(`Other Claude conversations open now (${others.length}):`);
-    for (const s of others.slice(0, 5)) lines.push(`- "${short(s.name || 'untitled', 60)}" · ${whereLabel(s.entrypoint)} · ${projectName(s.cwd)} · ${s.status === 'busy' ? 'working' : s.status || '?'}`);
+    for (const s of others.slice(0, 5)) lines.push(`- "${short(s.name || 'untitled', 60)}" · ${whereLabel(s.entrypoint)} · ${projectName(s.cwd)} · ${s.status === 'busy' ? 'working' : s.status || '?'} · id ${String(s.sessionId).slice(0, 8)}`);
   }
 
   const events = readEvents(256 * 1024).filter((e) => Date.now() - e.ts < 12 * 3600e3);
@@ -229,13 +229,13 @@ export function brief(currentSid, cfg = config()) {
   const recent = cache.recent.filter((r) => r.id !== currentSid && Date.now() - r.lastAt < cfg.briefRecentDays * 864e5).slice(0, 6);
   if (recent.length) {
     lines.push(`Recent conversations (last ${cfg.briefRecentDays} days):`);
-    for (const r of recent) lines.push(`- ${fmtWhen(r.lastAt)} · ${r.where} · ${r.project} · "${short(r.title, 60)}" — last ask: ${short(r.lastPrompt, 90)}`);
+    for (const r of recent) lines.push(`- ${fmtWhen(r.lastAt)} · ${r.where} · ${r.project} · "${short(r.title, 60)}" · id ${String(r.id).slice(0, 8)} — last ask: ${short(r.lastPrompt, 90)}`);
   }
 
   const fails = logFailures(3 * 3600e3);
   if (fails.length) lines.push(`Terminal commands that failed in the last 3 hours: ${fails.length} (node ${q(path.join(scripts, 'terminals.mjs'))} shows them)`);
 
-  lines.push(`Find older work: node ${q(path.join(scripts, 'recall.mjs'))} search WORDS (use only when it helps the task).`);
+  lines.push(`Read any of them: node ${q(path.join(scripts, 'recall.mjs'))} show ID --full · find older work: … search WORDS (use only when it helps the task).`);
   if (PLUGIN_ROOT) {
     try {
       const s = JSON.parse(fs.readFileSync(path.join(CLAUDE_DIR, 'settings.json'), 'utf8'));
@@ -260,13 +260,25 @@ async function main() {
   if (mode === 'route') {
     // Grade the request and, when the conversation's model does not fit it, tell Claude which helper to use.
     const cfg = config();
-    if (cfg.autoRoute === false || !h.prompt) return;
-    if (/^\s*</.test(h.prompt)) return;
+    if ((cfg.autoRoute === false && cfg.readHints === false) || typeof h.prompt !== 'string') return;
+    // A huge paste: its start and end are enough, and no pattern below can get slow.
+    const raw = h.prompt.length > 60000 ? `${h.prompt.slice(0, 30000)}\n${h.prompt.slice(-30000)}` : h.prompt;
+    // Grade what the user typed; text they pasted is material. The paste counts only when it is
+    // all there is, or when the typed words ask for its items to be done ("do these:").
+    const pastes = [...raw.matchAll(/<pasted_content\b[^<>]*>([\s\S]*?)<\/pasted_content>/g)].map((m) => m[1]);
+    const typed = cleanPrompt(raw.replace(/<pasted_content\b[^<>]*>[\s\S]*?<\/pasted_content>/g, ' '));
+    const prompt = !pastes.length || !typed ? cleanPrompt(raw) : asksForSteps(typed) ? `${typed}\n${pastes.join('\n')}` : typed;
+    if (!prompt || prompt.startsWith('<') || prompt.startsWith('This session is being continued from a previous conversation')) return;
     const main = conversationModel(h);
-    const r = routeNote(cleanPrompt(h.prompt), main || 'claude-opus', { plugin: fromPlugin });
-    if (!r.grade) return;
-    try { appendEvent({ ts: Date.now(), ev: 'Route', sid: h.session_id, cwd: h.cwd, level: r.level, model: r.model, main, noted: !!r.note }); } catch { /* ignore */ }
-    if (r.note) process.stdout.write(`${r.note}\n`);
+    // Unknown model: no advice that could be wrong for it.
+    const r = cfg.autoRoute === false || !main ? { grade: null, note: '' } : routeNote(prompt, main, { plugin: fromPlugin });
+    let read = '';
+    if (cfg.readHints !== false) { try { read = readNote(prompt, h.session_id); } catch { /* no index yet */ } }
+    if (r.grade) {
+      try { appendEvent({ ts: Date.now(), ev: 'Route', sid: h.session_id, cwd: h.cwd, level: r.level, model: r.model, main, noted: !!r.note, steps: r.steps ? r.steps.map((x) => x.model) : undefined }); } catch { /* ignore */ }
+    }
+    const out = [r.note, read].filter(Boolean).join('\n');
+    if (out) process.stdout.write(`${out}\n`);
     return;
   }
   if (mode === 'session-start') {

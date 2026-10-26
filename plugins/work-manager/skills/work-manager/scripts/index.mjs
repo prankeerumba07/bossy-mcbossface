@@ -11,7 +11,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import {
   PROJECTS, FILES, ensureData, readJSON, writeJSON, safeReaddir, safeStat,
-  isHumanPrompt, cleanPrompt, contentText, whereLabel, projectName, short, parseArgs, isMain,
+  isHumanPrompt, cleanPrompt, contentText, whereLabel, projectName, short, parseArgs, isMain, isScriptRun,
 } from './lib.mjs';
 
 const MAX_PROMPTS = 1000;
@@ -78,7 +78,7 @@ export async function summarizeTranscript(file) {
   if (!rec.title) rec.title = titleFromAi || short(rec.prompts[0]?.text || '(no prompt)', 80);
   rec.project = projectName(rec.cwd);
   // Runs started by scripts or other agents in temporary folders, not by you.
-  rec.automated = /^(\/private)?\/(tmp|var\/folders)\//.test(rec.cwd) || rec.entrypoint.startsWith('sdk');
+  rec.automated = isScriptRun(rec);
   rec.models = [...models];
   rec.files = [...files];
   return rec;
