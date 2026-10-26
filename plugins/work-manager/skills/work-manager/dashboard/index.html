@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work Manager</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #5d6677; --line: #e3e6ec; --soft: #eef1f5;
+  --green: #12805c; --green-bg: #e3f5ee; --blue: #2457c5; --blue-bg: #e6eefc; --violet: #6b3fc4; --violet-bg: #efe8fc;
+  --amber: #a15c00; --amber-bg: #fff2dc; --red: #b42318; --red-bg: #fde8e6; --gray-bg: #eef0f3;
+  --radius: 10px; --shadow: 0 1px 2px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b; --panel: #1a1e26; --ink: #e7eaf0; --muted: #9aa3b2; --line: #2a303b; --soft: #222833;
+    --green: #4cc79a; --green-bg: #133528; --blue: #7ea6ff; --blue-bg: #18264a; --violet: #b49bff; --violet-bg: #2a2148;
+    --amber: #f0b45b; --amber-bg: #3a2a12; --red: #ff8a80; --red-bg: #45201d; --gray-bg: #262b35;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+header { position: sticky; top: 0; z-index: 2; background: var(--panel); border-bottom: 1px solid var(--line); }
+.bar { max-width: 1180px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+h1 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+.live { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+.dot.off { background: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+.counts { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.count { background: var(--soft); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
+.count b { color: var(--ink); font-size: 13px; }
+.count.alert b { color: var(--red); }
+main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+section { min-width: 0; }
+.agent-label, .convo-name, .plan-title, .task b, .what, .snip, .hit .t, details summary, details p, td, .ask, .flow, .sub, .agent-top, code { overflow-wrap: anywhere; }
+.agents { grid-template-columns: minmax(0, 1fr); }
+.agent, .agent-top > * { min-width: 0; }
+tr.full td { padding-top: 0; border-top: 0; }
+section > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.empty { color: var(--muted); padding: 14px 16px; }
+.attn { border-color: var(--amber); }
+.attn .item { display: flex; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.attn .item:first-child { border-top: 0; }
+.attn .what { flex: 1; min-width: 0; }
+.convo { padding: 0; overflow: hidden; }
+.convo + .convo { margin-top: 10px; }
+.convo-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 12px 14px; }
+.convo-name { font-weight: 600; font-size: 15px; }
+.sub { color: var(--muted); font-size: 12.5px; }
+.ask { padding: 0 14px 10px; color: var(--muted); font-size: 13px; }
+.agents { border-top: 1px solid var(--line); background: var(--soft); padding: 8px 10px 10px 14px; display: grid; gap: 8px; }
+.agent { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; display: grid; gap: 4px; }
+.agent-top { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.agent-label { font-weight: 600; }
+.flow { font-size: 12.5px; color: var(--muted); }
+.flow b { color: var(--green); font-weight: 600; }
+.pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill.working { color: var(--blue); background: var(--blue-bg); }
+.pill.reported, .pill.done, .pill.idle-ok { color: var(--green); background: var(--green-bg); }
+.pill.failed { color: var(--red); background: var(--red-bg); }
+.pill.stopped { color: var(--muted); background: var(--gray-bg); }
+.pill.needs-you, .pill.checking, .pill.stuck { color: var(--amber); background: var(--amber-bg); }
+.pill.idle, .pill.planned, .pill.skipped { color: var(--muted); background: var(--gray-bg); }
+.pill.working::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.2s infinite ease-in-out; }
+@keyframes pulse { 50% { opacity: .25; } }
+.model { border-radius: 6px; padding: 1px 7px; font-size: 12px; font-weight: 600; }
+.model.haiku { color: var(--green); background: var(--green-bg); }
+.model.sonnet { color: var(--blue); background: var(--blue-bg); }
+.model.opus { color: var(--violet); background: var(--violet-bg); }
+.model.other, .model.fable { color: var(--muted); background: var(--gray-bg); }
+.prog { height: 5px; background: var(--soft); border-radius: 3px; overflow: hidden; }
+.prog > i { display: block; height: 100%; background: var(--blue); border-radius: 3px; transition: width .6s; }
+details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+details p { margin: 6px 0 0; white-space: pre-wrap; font-size: 13px; }
+.plan { padding: 12px 14px; }
+.plan + .plan { margin-top: 10px; }
+.plan-title { font-weight: 600; }
+.task { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+.task:first-of-type { border-top: 0; }
+.steps { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.step { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: var(--soft); color: var(--muted); }
+.step.on { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.step.ok { background: var(--green-bg); color: var(--green); }
+.step.bad { background: var(--red-bg); color: var(--red); font-weight: 600; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; font-size: 13px; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
+.tablewrap { overflow-x: auto; }
+.terms { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.term { padding: 10px 12px; }
+.term code, .mono { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+.cmd { margin-top: 4px; }
+.cmd.bad { color: var(--red); }
+.searchbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); align-items: center; }
+.searchbar input[type=search] { flex: 1 1 240px; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+.searchbar label { color: var(--muted); font-size: 12.5px; display: inline-flex; gap: 5px; align-items: center; }
+button { font: inherit; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); cursor: pointer; }
+.hit { padding: 10px 14px; border-top: 1px solid var(--line); }
+.hit:first-child { border-top: 0; }
+.hit .t { font-weight: 600; }
+.snip { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+@media (max-width: 640px) {
+  .counts { margin-left: 0; } .task { grid-template-columns: 1fr; }
+  #done table, #done tbody, #done tr, #done td { display: block; width: auto; }
+  #done thead { display: none; }
+  #done tr:not(.full) { border-top: 1px solid var(--line); padding-top: 6px; }
+  #done td { border: 0; padding: 2px 12px; }
+  #done tr:not(.full) td { display: inline-block; }
+  #done td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
+}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <h1>Work Manager</h1>
+  <span class="live"><span class="dot" id="dot"></span><span id="liveText">Connecting…</span></span>
+  <div class="counts" id="counts"></div>
+</div></header>
+<main>
+  <section id="attnSec"><h2>Needs your attention</h2><div class="panel" id="attn"></div></section>
+  <section><h2>Working now — conversations and their helpers</h2><div id="convos"></div></section>
+  <section id="plansSec"><h2>Plans — tasks the main agent handed out</h2><div id="plans"></div></section>
+  <section><h2>Finished and failed helpers — last 24 hours</h2><div class="panel tablewrap" id="done"></div></section>
+  <section><h2>Terminal windows</h2><div id="terms"></div></section>
+  <section><h2>Past conversations</h2>
+    <div class="panel">
+      <form class="searchbar" id="searchForm">
+        <input type="search" id="q" placeholder="Search your past Claude work (words from a task, file or topic)" autocomplete="off">
+        <label><input type="checkbox" id="deep"> Also read full transcripts (slower)</label>
+        <button type="submit">Search</button>
+      </form>
+      <div id="hits"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
+  <p class="note">This page runs only on this computer (127.0.0.1) and only reads. It updates every 2 seconds while open.</p>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dur = (ms) => { if (ms == null) return ''; const s = Math.max(0, Math.round(ms / 1000)); if (s < 60) return s + 's'; const m = Math.floor(s / 60); if (m < 60) return m + 'm ' + (s % 60) + 's'; return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
+const time = (ms) => ms ? new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+const when = (ms) => { if (!ms) return ''; const d = new Date(ms); const today = new Date(); return d.toDateString() === today.toDateString() ? 'today ' + time(ms) : d.toLocaleDateString([], { day: 'numeric', month: 'short', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' }) + ' ' + time(ms); };
+const STATUS = { working: 'Working', reported: 'Result sent to main agent', failed: 'Failed', stopped: 'Stopped', 'needs-you': 'Waiting for you', idle: 'Idle', planned: 'Planned', checking: 'Being checked', done: 'Done and checked', skipped: 'Skipped' };
+const MODE_NOTE = { recent: 'Most recent conversations (last 30 days). Search to look further back.', deep: 'Searched the full transcripts still on disk.' };
+const pill = (st, label) => `<span class="pill ${esc(st)}">${esc(label || STATUS[st] || st)}</span>`;
+const model = (fam, label) => `<span class="model ${esc(fam || 'other')}" title="Model">${esc(label || '?')}</span>`;
+const famOf = (label) => (/haiku/i.test(label) ? 'haiku' : /sonnet/i.test(label) ? 'sonnet' : /opus/i.test(label) ? 'opus' : 'other');
+const ICON = { ask: '✋', failed: '⛔', stuck: '⏳', 'needs-you': '✋', terminal: '⌨️' };
+
+let state = null, lastAt = 0, connected = false;
+
+let pending = null;
+const REDRAWN = ['attn', 'convos', 'plans', 'done', 'terms'];
+// The redrawn section that holds the viewer's text selection, if any.
+function selectedSection() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.toString().length) return null;
+  return REDRAWN.find((id) => $(id).contains(sel.anchorNode)) || null;
+}
+document.addEventListener('selectionchange', () => { if (pending && !selectedSection()) { const p = pending; pending = null; render(p); } });
+
+function render(s) {
+  // While the viewer selects text in a section, that section waits; the rest updates.
+  const hold = selectedSection();
+  pending = hold ? s : null;
+  // Boxes the viewer opened stay open when the page refreshes its data.
+  const openKeys = new Set([...document.querySelectorAll('details[open][data-key]')].map((d) => d.dataset.key));
+  draw(s, hold);
+  for (const d of document.querySelectorAll('details[data-key]')) if (openKeys.has(d.dataset.key)) d.open = true;
+}
+
+function draw(s, skip) {
+  const out = {};
+  state = s; lastAt = Date.now();
+  const c = s.counts;
+  $('counts').innerHTML = [
+    ['Conversations open', c.conversations], ['Helpers working', c.working], ['Finished today', c.doneToday],
+    ['Failed today', c.failed, c.failed > 0], ...(c.stopped ? [['Stopped today', c.stopped]] : []), ['Needs you', c.attention, c.attention > 0],
+  ].map(([l, v, a]) => `<span class="count${a ? ' alert' : ''}">${l} <b>${v}</b></span>`).join('');
+
+  $('attn').className = 'panel' + (s.attention.length ? ' attn' : '');
+  out.attn = s.attention.length
+    ? s.attention.map((a) => `<div class="item"><span>${ICON[a.kind] || '•'}</span><div class="what">${esc(a.text)}<div class="sub">${esc(a.where || '')}${a.at ? ' · ' + when(a.at) : ''}</div></div></div>`).join('')
+    : '<div class="empty">Nothing needs you right now.</div>';
+
+  const byKey = new Map(s.agents.map((a) => [a.key, a]));
+  out.convos = s.main.length ? s.main.map((m) => {
+    const mine = m.agents.map((k) => byKey.get(k)).filter(Boolean);
+    const working = mine.filter((a) => a.status === 'working');
+    const recentDone = mine.filter((a) => a.status !== 'working').slice(0, 4);
+    const statusPill = m.status === 'working' ? pill('working', 'Working') : m.status === 'needs-you' ? pill('needs-you') : pill('idle', 'Idle — waiting for your next message');
+    return `<div class="panel convo">
+      <div class="convo-head"><span class="convo-name">${esc(m.name)}</span>${statusPill}${m.model ? model(famOf(m.model), m.model) : ''}
+        <span class="sub">Main agent · ${esc(m.where)} · ${esc(m.project)}${m.tty ? ' · ' + esc(m.tty) : ''}</span></div>
+      ${m.status === 'needs-you' ? `<div class="ask"><b>It is asking${m.askSince ? ` (for <span class="tick" data-since="${Number(m.askSince)}">${dur(Date.now() - m.askSince)}</span>)` : ''}:</b> ${esc(m.ask)}</div>` : ''}
+      ${m.lastPrompt ? `<div class="ask">Your last message (${when(m.lastPromptAt)}): ${esc(m.lastPrompt)}</div>` : ''}
+      ${m.doing ? `<div class="ask">Right now: ${esc(m.doing)}</div>` : ''}
+      ${working.length || recentDone.length ? `<div class="agents">${working.map(agentCard).join('')}${recentDone.map(agentCard).join('')}</div>` : ''}
+    </div>`;
+  }).join('') : '<div class="panel empty">No Claude conversation is open.</div>';
+
+  $('plansSec').style.display = s.plans.length ? '' : 'none';
+  out.plans = s.plans.map(planCard).join('');
+
+  const finished = s.agents.filter((a) => a.status !== 'working');
+  out.done = finished.length ? `<table><thead><tr><th>Helper</th><th>Model</th><th>Task</th><th>Status</th><th>Time taken</th><th>Finished</th></tr></thead><tbody>${finished.map((a) => `
+    <tr><td>${esc(a.typeName)}</td><td>${model(a.modelFamily, a.model)}</td><td>${esc(a.label)}<div class="sub">${esc(a.project)}</div></td>
+    <td>${pill(a.status)}</td><td data-label="Took">${dur(a.elapsed)}</td><td data-label="Finished">${when(a.endedAt)}</td></tr>
+    ${a.error || a.result ? `<tr class="full"><td colspan="6">${a.error ? `<span style="color:${a.status === 'stopped' ? 'var(--muted)' : 'var(--red)'}">${esc(a.error)}</span>` : `<details data-key="t-${esc(a.key)}"><summary>What it sent back: ${esc(a.result.slice(0, 90))}${a.result.length > 90 ? '…' : ''}</summary><p>${esc(a.result)}</p></details>`}</td></tr>` : ''}`).join('')}</tbody></table>`
+    : `<div class="empty">${s.eventsSeen ? 'No helper finished in the last 24 hours.' : 'Nothing recorded yet. Helpers show up here once Work Manager is installed and a conversation starts one.'}</div>`;
+
+  out.terms = s.terminals.length ? `<div class="terms">${s.terminals.map(termCard).join('')}</div>` + (s.terminalLogOn ? '' : '<p class="note">Terminal log is off: only what is running right now is shown, not past commands or whether they failed. See GUIDE.md to turn it on.</p>')
+    : '<div class="panel empty">No terminal window is open.</div>';
+  for (const [id, html] of Object.entries(out)) if (id !== skip) $(id).innerHTML = html;
+}
+
+function agentCard(a) {
+  const isWorking = a.status === 'working';
+  return `<div class="agent">
+    <div class="agent-top"><span class="agent-label">${esc(a.label)}</span>${model(a.modelFamily, a.model)}${pill(a.stuck ? 'stuck' : a.status, a.stuck ? 'No activity for a while' : null)}
+      <span class="sub">${esc(a.typeName)}${a.background ? ' · in background' : ''}${a.plan ? ` · plan ${esc(a.plan)} / ${esc(a.task)}` : ''}</span></div>
+    ${isWorking ? `<div class="sub">Doing: ${esc(a.doing)} · running <span class="tick" data-since="${Number(a.startedAt) || ''}">${dur(a.elapsed)}</span> · ${esc(a.etaNote)}</div>
+      ${a.progress != null ? `<div class="prog"><i style="width:${Math.round(a.progress * 100)}%"></i></div>` : ''}`
+      : a.status === 'reported' ? `<div class="flow"><b>↳ Sent its result to the main agent</b> at ${time(a.endedAt)} after ${dur(a.elapsed)}${a.toolCount ? ` · ${esc(a.toolCount)} steps` : ''}</div>
+        ${a.result ? `<details data-key="r-${esc(a.key)}"><summary>What it sent back</summary><p>${esc(a.result)}</p></details>` : ''}`
+      : `<div class="flow" style="color:${a.status === 'stopped' ? 'var(--muted)' : 'var(--red)'}">${esc(a.error || STATUS[a.status])}</div>`}
+  </div>`;
+}
+
+const STEPS = [['planned', 'Planned'], ['working', 'Working'], ['reported', 'Sent to main agent'], ['checking', 'Being checked'], ['done', 'Done']];
+function planCard(p) {
+  const done = p.tasks.filter((t) => t.status === 'done').length;
+  return `<div class="panel plan">
+    <div class="plan-title">${esc(p.title)} <span class="sub">· ${esc(p.id)} · ${done} of ${p.tasks.length} done · made ${when(p.created)}${p.status === 'closed' ? ' · closed' : ''}</span></div>
+    ${p.tasks.map((t) => {
+      const live = t.live;
+      const checked = live === 'checked';
+      const idx = checked ? STEPS.length - 1 : STEPS.findIndex(([k]) => k === live);
+      const bad = ['failed', 'needs-you'].includes(live);
+      return `<div class="task"><div><b>${esc(t.title)}</b> <span class="sub">· ${esc(t.size)}${t.tries > 1 ? ` · try ${t.tries}` : ''}</span>
+        <div class="steps">${bad ? `<span class="step bad">${esc(STATUS[live] || live)}</span>` : live === 'skipped' || live === 'stopped' ? `<span class="step">${esc(STATUS[live])}</span>` : STEPS.map(([k, l], i) => (checked && k === 'done' ? '<span class="step on">Check finished — main agent has not marked it done</span>' : `<span class="step ${i < idx ? 'ok' : i === idx ? (k === 'done' ? 'ok' : 'on') : ''}">${l}</span>`)).join('')}</div>
+        ${t.result ? `<details data-key="p-${esc(p.id)}-${esc(t.id)}"><summary>Result</summary><p>${esc(t.result)}</p></details>` : ''}${t.check ? `<div class="sub">Checked: ${esc(t.check)}</div>` : ''}</div>
+        <div style="text-align:right">${t.agentModel ? model(famOf(t.agentModel), t.agentModel) : ''}${t.checkerModel ? `<div class="sub">checked by ${model(famOf(t.checkerModel), t.checkerModel)}</div>` : ''}<div class="sub">${t.elapsed != null ? (t.doerWorkingSince ? `<span class="tick" data-since="${Number(t.doerWorkingSince)}">${dur(t.elapsed)}</span>` : dur(t.elapsed)) : ''}${t.eta ? ' · ' + esc(t.eta) : ''}</div></div></div>`;
+    }).join('')}
+  </div>`;
+}
+
+function termCard(t) {
+  const r = t.running;
+  let now = '<div class="sub">Idle — waiting for a command</div>';
+  if (r && r.claude) now = `<div>Claude Code: <b>${esc(r.claude.name || 'untitled')}</b> ${model(famOf(r.claude.modelName), r.claude.modelName || '?')} ${pill(r.claude.status === 'busy' ? 'working' : 'idle', r.claude.status === 'busy' ? 'Working' : 'Idle')}</div>`;
+  else if (r) now = `<div class="sub">Running for <span class="tick" data-since="${Number(state.at) - Number(r.elapsed) || ''}">${dur(r.elapsed)}</span>:</div><code>${esc(r.cmd)}</code>`;
+  const recent = (t.recent || []).slice(-4).reverse().map((c) => `<div class="cmd mono ${c.exit && c.exit !== 130 ? 'bad' : ''}">${c.exit == null ? (c.ended ? '?' : '…') : c.exit === 0 ? '✓' : '✗ ' + esc(c.exit)} ${esc(c.cmd)}</div>`).join('');
+  return `<div class="panel term"><div><b>${esc(t.app)}</b> <span class="sub">· ${esc(t.tty)} · ${esc(t.project || t.cwd)}</span></div>${now}
+    ${(t.background || []).map((b) => `<div class="sub">In background <span class="tick" data-since="${Number(state.at) - Number(b.elapsed) || ''}">${dur(b.elapsed)}</span>: <code>${esc(b.cmd)}</code></div>`).join('')}${recent}</div>`;
+}
+
+let searchSeq = 0, searchCtl = null;
+async function runSearch(e) {
+  if (e) e.preventDefault();
+  const q = $('q').value.trim();
+  const mySeq = ++searchSeq;
+  if (searchCtl) searchCtl.abort();
+  searchCtl = new AbortController();
+  $('hits').innerHTML = `<div class="empty">${q ? ($('deep').checked ? 'Reading the full transcripts (this can take up to a minute)…' : 'Searching…') : 'Loading…'}</div>`;
+  try {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}${$('deep').checked ? '&deep=1' : ''}`, { signal: searchCtl.signal }).then((x) => x.json());
+    if (mySeq !== searchSeq) return;
+    if (!r.results || !r.results.length) { $('hits').innerHTML = `<div class="empty">Nothing found. ${$('deep').checked ? 'Try other or fewer words.' : 'Try other words or tick “Also read full transcripts”.'}</div>`; return; }
+    $('hits').innerHTML = (MODE_NOTE[r.mode] ? `<div class="hit sub">${MODE_NOTE[r.mode]}</div>` : '') + r.results.map((h) => `
+      <div class="hit"><div class="t">${esc(h.title)}</div>
+      <div class="sub">${when(h.lastAt)} · ${esc(h.where || '')} · ${esc(h.project || '')} · id <span class="mono">${esc(String(h.id).slice(0, 8))}</span>${h.allWords === false ? ' · some words only' : ''}</div>
+      ${(h.snippets || [h.snippet || h.lastPrompt]).filter(Boolean).map((sn) => `<div class="snip">${esc(sn)}</div>`).join('')}</div>`).join('');
+  } catch (err) { if (mySeq === searchSeq && err.name !== 'AbortError') $('hits').innerHTML = '<div class="empty">Search failed. Is the dashboard still running?</div>'; }
+}
+$('searchForm').addEventListener('submit', runSearch);
+
+function showLive() {
+  $('dot').className = connected ? 'dot' : 'dot off';
+  const ago = lastAt ? `${Math.round((Date.now() - lastAt) / 1000)}s ago` : 'never';
+  $('liveText').textContent = !connected ? `Disconnected — trying again · last update ${ago}` : pending ? 'Live · one section paused while you select text' : `Live · updated ${ago}`;
+}
+function connect() {
+  const es = new EventSource('/api/stream');
+  es.onmessage = (m) => { try { render(JSON.parse(m.data)); connected = true; showLive(); } catch {} };
+  es.addEventListener('ping', () => { lastAt = Date.now(); connected = true; showLive(); });
+  es.onerror = () => { connected = false; showLive(); };
+}
+setInterval(() => {
+  showLive();
+  const sel = window.getSelection();
+  for (const el of document.querySelectorAll('.tick[data-since]')) {
+    const t = Number(el.dataset.since);
+    // leave a time alone while it is part of the viewer's selection
+    if (t && !(sel && !sel.isCollapsed && sel.containsNode(el, true))) el.textContent = dur(Date.now() - t);
+  }
+}, 1000);
+connect();
+runSearch();
+</script>
+</body>
+</html>

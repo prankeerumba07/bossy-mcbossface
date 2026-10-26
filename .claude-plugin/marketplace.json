@@ -1,0 +1,18 @@
+{
+  "name": "bossy-mcbossface",
+  "description": "A tiny marketplace with one very bossy plugin: Work Manager, the main agent that hands your work to Haiku, Sonnet and Opus helpers, checks everything they do, and shows it all on a live dashboard.",
+  "owner": {
+    "name": "prankeerumba07",
+    "url": "https://github.com/prankeerumba07"
+  },
+  "plugins": [
+    {
+      "name": "work-manager",
+      "source": "./plugins/work-manager",
+      "description": "Main agent + Haiku/Sonnet/Opus 5.5 helpers + memory of past Claude Code conversations + terminal watcher + live local dashboard.",
+      "version": "1.0.0",
+      "category": "productivity",
+      "keywords": ["orchestration", "agents", "dashboard", "memory", "terminals"]
+    }
+  ]
+}
