@@ -239,7 +239,8 @@ export function brief(currentSid, cfg = config()) {
   if (PLUGIN_ROOT) {
     try {
       const s = JSON.parse(fs.readFileSync(path.join(CLAUDE_DIR, 'settings.json'), 'utf8'));
-      if (Object.values(s.hooks || {}).flat().some((g) => g && g._work_manager)) lines.push(`An older non-plugin copy of Work Manager is also installed; offer the user to retire it: node ${q(path.join(scripts, 'setup.mjs'))} --remove-old-copy (asks first).`);
+      const old = (g) => g && (g._work_manager || ((g.hooks || []).length > 0 && g.hooks.every((x) => /[\\/]\.claude[\\/]skills[\\/]work-manager[\\/]scripts[\\/]hook\.mjs/.test(x.command || ''))));
+      if (Object.values(s.hooks || {}).flat().some(old)) lines.push(`An older non-plugin copy of Work Manager is also installed; offer the user to retire it: node ${q(path.join(scripts, 'setup.mjs'))} --remove-old-copy (asks first).`);
     } catch { /* no settings */ }
   }
   return lines.join('\n');

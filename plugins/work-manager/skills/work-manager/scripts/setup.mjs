@@ -29,6 +29,10 @@ const stamp = () => {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 };
 const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// An older copy's hook: tagged by its installer, or (when Claude Code rewrote
+// settings.json and dropped the tag) recognised by the script it runs.
+const OLD_HOOK_CMD = /[\\/]\.claude[\\/]skills[\\/]work-manager[\\/]scripts[\\/]hook\.mjs/;
+export const isOldHookGroup = (g) => !!g && (g[TAG] || ((g.hooks || []).length > 0 && (g.hooks || []).every((h) => OLD_HOOK_CMD.test(h.command || ''))));
 const BLOCK_RE = new RegExp(`\\n?\\n?${esc(ZSH_START)}[\\s\\S]*?${esc(ZSH_END)}\\n?`);
 
 function readSettings() {
@@ -74,7 +78,7 @@ function terminalLogOff() {
 
 function oldCopy() {
   const s = readSettings();
-  const hooks = Object.values(s.hooks || {}).flat().filter((g) => g && g[TAG]).length;
+  const hooks = Object.values(s.hooks || {}).flat().filter(isOldHookGroup).length;
   const agents = OLD_AGENTS.filter((a) => fs.existsSync(path.join(AGENTS_DIR, `${a}.md`)));
   const folder = fs.existsSync(path.join(OLD_SKILL, 'SKILL.md')) && path.resolve(OLD_SKILL) !== path.resolve(SKILL_DIR) ? OLD_SKILL : null;
   return { hooks, agents, folder };
@@ -89,7 +93,7 @@ function removeOldCopy() {
     const b = backup(SETTINGS);
     const out = {};
     for (const [ev, groups] of Object.entries(s.hooks || {})) {
-      const kept = (groups || []).filter((g) => !g[TAG]);
+      const kept = (groups || []).filter((g) => !isOldHookGroup(g));
       if (kept.length) out[ev] = kept;
     }
     s.hooks = out;

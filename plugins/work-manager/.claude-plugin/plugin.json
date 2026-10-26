@@ -1,7 +1,7 @@
 {
   "name": "work-manager",
   "displayName": "Work Manager",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "One main assistant for all your Claude work: remembers past Claude Code conversations, sees your terminal windows, splits big jobs among helpers on Haiku 5.5, Sonnet 5.5 and Opus 5.5, checks every result, and shows everything live on a local dashboard.",
   "author": {
     "name": "prankeerumba07",
