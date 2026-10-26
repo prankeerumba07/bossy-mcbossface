@@ -235,6 +235,7 @@ export function buildState({ term } = {}) {
     else if (e.ev === 'PostToolUse') s.clearAt = e.ts;
     else if (e.ev === 'Notification' && ATTENTION_NTYPES.has(e.ntype)) { s.ask = e.msg; s.askAt = e.ts; }
     else if (e.ev === 'StopFailure') { s.failed = e.error || 'API error'; s.failedAt = e.ts; }
+    else if (e.ev === 'Route') s.route = { level: e.level, model: e.model, main: modelLabel(e.main), noted: e.noted, at: e.ts };
     lastBySid.set(e.sid, s);
   }
   const main = sessions.map((s) => {
@@ -250,7 +251,7 @@ export function buildState({ term } = {}) {
       sid: s.sessionId, name: s.name || 'Untitled conversation', where: s.where, project: s.project, cwd: s.cwd,
       model: modelLabel(s.model), status, ask: asking ? ev.ask : '', askSince: asking ? ev.askAt : null,
       lastPrompt: ev.prompt || '', lastPromptAt: ev.promptAt || null,
-      doing, lastActivityAt: s.lastActivityAt, startedAt: s.startedAt, tty: s.tty,
+      doing, lastActivityAt: s.lastActivityAt, startedAt: s.startedAt, tty: s.tty, route: ev.route || null,
       agents: agents.filter((a) => a.sid === s.sessionId).map((a) => a.key),
     };
   });

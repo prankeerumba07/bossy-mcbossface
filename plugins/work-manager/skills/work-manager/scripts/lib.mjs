@@ -35,6 +35,7 @@ export const DEFAULT_CONFIG = {
   sessionStartBrief: true,
   briefRecentDays: 7,
   terminalLogFullCommands: false,
+  autoRoute: true,
 };
 
 export function ensureData() {

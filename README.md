@@ -6,7 +6,8 @@ Bossy McBossface is a Claude plugin called **Work Manager**. It turns Claude int
 
 - **remembers** what you did in past Claude Code conversations (days, months, years ago) and picks up where you stopped,
 - **watches** your terminal windows — what is running, which Claude model each conversation uses, what failed,
-- **delegates** big jobs to helpers on the right model: **Haiku 5.5** for easy chores, **Sonnet 5.5** for real work, **Opus 5.5** for the hard stuff,
+- **picks the right model for every request** automatically: each prompt is graded easy / medium / hard before Claude sees it, and the work goes to **Haiku 5.5** for easy chores, **Sonnet 5.5** for real work, **Opus 5.5** for the hard stuff,
+- **delegates** big jobs to those helpers and runs them side by side,
 - **checks everything** they hand back with independent checker helpers (it does not take "done" for an answer),
 - and **shows it all live** on a local dashboard: who is working, on which model, doing what, how long it took, how long is left, and what needs you.
 
@@ -62,7 +63,7 @@ The full guide is in [`plugins/work-manager/skills/work-manager/GUIDE.md`](plugi
 | `skills/work-manager` | the main agent's playbook, plus the scripts and the dashboard |
 | `agents/wm-quick`, `wm-worker`, `wm-expert` | helpers pinned to Haiku 5.5, Sonnet 5.5 and Opus 5.5 |
 | `agents/wm-checker`, `wm-expert-checker` | read-only checkers on Sonnet 5.5 and Opus 5.5 |
-| `hooks/hooks.json` | records helper activity for the dashboard and adds a short "where things stand" note when a conversation starts |
+| `hooks/hooks.json` | grades every request and points Claude to the right model, records helper activity for the dashboard, and adds a short "where things stand" note when a conversation starts |
 
 ## Requirements
 

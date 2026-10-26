@@ -13,6 +13,21 @@ In any Claude Code conversation (terminal, VS Code, JetBrains, or the Claude des
 
 Dashboard: **http://127.0.0.1:4777** (if that port is busy it takes the next free one; ask "show me the dashboard" for the real link). It only answers your own computer.
 
+## Automatic model choice
+
+Every request you type is graded easy, medium or hard by a quick word check before Claude sees it (no extra AI call, about 0.05 s). When the conversation's model doesn't fit, Claude gets one line telling it which helper to use:
+
+| Your conversation runs on | Request | What happens |
+|---|---|---|
+| Opus | easy (rename, list, find, typo…) | handed to the Haiku 5.5 helper if it takes more than a few steps |
+| Sonnet | hard (architecture, security, race conditions, audits…) | core work handed to the Opus 5.5 helper |
+| Haiku | medium or hard | handed to the Sonnet 5.5 or Opus 5.5 helper |
+| any | the model already fits | nothing is added |
+
+The dashboard shows each request's grade. Claude Code can't switch the main conversation's own model by itself in the middle of a conversation (it would also throw away its prompt cache), so the switch happens through the helpers. For an automatic switch of the main model too, set the model to `opusplan` (`/model opusplan`): Opus while planning, Sonnet while doing the work.
+
+Turn it off with `"autoRoute": false` in `~/.claude/work-manager/config.json`.
+
 ## The helpers and their models
 
 | Helper | Model | Gets |
@@ -81,6 +96,7 @@ Claude Code deletes terminal and VS Code transcripts after 30 days. To keep them
 | `port` | `4777` | dashboard port |
 | `briefRecentDays` | `7` | how far back the start note looks |
 | `terminalLogFullCommands` | `false` | keep full command lines (secrets hidden) instead of command words only |
+| `autoRoute` | `true` | grade each request and point Claude to the helper on the right model |
 
 Turn the whole thing off: first ask Claude to turn off the terminal log (if you turned it on) and to stop the dashboard, then disable or remove the plugin (claude.ai → Customize → Plugins, or `/plugin` in Claude Code). The terminal log also stops by itself once the plugin folder is gone. Your data stays in `~/.claude/work-manager/`; delete that folder to remove it.
 

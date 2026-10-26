@@ -48,6 +48,10 @@ Run `node $WM/setup.mjs --check` once per conversation that uses this skill.
 | "Set up / check Work Manager" | `node $WM/setup.mjs --check`, then the steps under *First use on a computer*. |
 | A job to do | The **main loop** below. |
 
+## Automatic model choice for every request
+
+Before each prompt reaches you, a hook grades it (easy / medium / hard) with a quick word check. When your own model does not fit, you get one line such as "[Work Manager] This request looks easy (a Haiku 5.5 job)…" or "…looks hard and needs Opus 5.5…". Follow it: hand the work to the named helper (do tiny jobs yourself), unless the project's `CLAUDE.md` says otherwise. No line means your model already fits. The user can turn this off with `"autoRoute": false` in `~/.claude/work-manager/config.json`.
+
 ## The main loop
 
 **Small jobs stay with you.** If the job takes only a handful of steps, do it yourself; helpers cost time and tokens. Use helpers when there are parts that can run at the same time, parts that need a different model, or work big enough that a fresh helper does it better.

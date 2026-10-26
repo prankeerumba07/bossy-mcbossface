@@ -198,6 +198,7 @@ function draw(s, skip) {
       ${m.status === 'needs-you' ? `<div class="ask"><b>It is asking${m.askSince ? ` (for <span class="tick" data-since="${Number(m.askSince)}">${dur(Date.now() - m.askSince)}</span>)` : ''}:</b> ${esc(m.ask)}</div>` : ''}
       ${m.lastPrompt ? `<div class="ask">Your last message (${when(m.lastPromptAt)}): ${esc(m.lastPrompt)}</div>` : ''}
       ${m.doing ? `<div class="ask">Right now: ${esc(m.doing)}</div>` : ''}
+      ${m.route ? `<div class="ask">Last request looked <b>${esc(m.route.level)}</b> → ${model(famOf(m.route.model), m.route.model)}${m.route.noted ? ` · told the main agent to use the ${esc(m.route.model)} helper` : ` · main agent ${esc(m.route.main || '')} fits`}</div>` : ''}
       ${working.length || recentDone.length ? `<div class="agents">${working.map(agentCard).join('')}${recentDone.map(agentCard).join('')}</div>` : ''}
     </div>`;
   }).join('') : '<div class="panel empty">No Claude conversation is open.</div>';

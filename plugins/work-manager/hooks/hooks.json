@@ -1,5 +1,5 @@
 {
-  "description": "Work Manager: records helper activity for the live dashboard and adds a short where-things-stand note when a conversation starts.",
+  "description": "Work Manager: picks the right model for each request, records helper activity for the live dashboard, and adds a short where-things-stand note when a conversation starts.",
   "hooks": {
     "SessionStart": [
       {
@@ -14,6 +14,15 @@
       }
     ],
     "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/skills/work-manager/scripts/run-hook.sh\" route plugin",
+            "timeout": 5
+          }
+        ]
+      },
       {
         "hooks": [
           {

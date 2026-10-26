@@ -7,11 +7,12 @@
 //                           Claude reads at the start of every conversation
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { logFailures } from './terminals.mjs';
+import { routeNote } from './route.mjs';
 import {
   FILES, SKILL_DIR, CLAUDE_DIR, PLUGIN_ROOT, ensureData, readJSON, writeJSON, readTail, readEvents, rotateIfBig, config, liveSessions,
-  whereLabel, projectName, short, fmtWhen, contentText, pidAlive, processCommand, isMain, cleanPrompt, isDashboardProcess,
+  whereLabel, projectName, short, fmtWhen, contentText, pidAlive, processCommand, isMain, cleanPrompt, isDashboardProcess, transcriptActivity,
 } from './lib.mjs';
 
 const MAX_EVENTS_BYTES = 8 * 1024 * 1024;
@@ -101,6 +102,32 @@ export function appendEvent(e) {
   fs.appendFileSync(FILES.events, `${line}\n`);
 }
 
+
+// The conversation's model: from its last reply, else what it was started
+// with (--model, ANTHROPIC_MODEL, project or user settings). '' when unknown.
+function conversationModel(h) {
+  try { const m = h.transcript_path ? transcriptActivity(h.transcript_path).model : ''; if (m) return m; } catch { /* unknown */ }
+  const started = [...readEvents(256 * 1024)].reverse().find((e) => e.ev === 'SessionStart' && e.sid === h.session_id && e.model);
+  if (started) return started.model;
+  let pid = process.ppid;
+  for (let i = 0; i < 8 && pid > 1; i++) {
+    let line = '';
+    try { line = execFileSync('ps', ['-o', 'ppid=,command=', '-p', String(pid)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { break; }
+    const m = line.match(/^(\d+)\s+(.*)$/);
+    if (!m) break;
+    if (/claude/i.test(m[2])) {
+      const flag = m[2].match(/--model[= ](\S+)/);
+      if (flag) return flag[1];
+    }
+    pid = Number(m[1]);
+  }
+  if (process.env.ANTHROPIC_MODEL) return process.env.ANTHROPIC_MODEL;
+  for (const f of [path.join(h.cwd || '', '.claude', 'settings.local.json'), path.join(h.cwd || '', '.claude', 'settings.json'), path.join(CLAUDE_DIR, 'settings.json')]) {
+    const model = readJSON(f, {})?.model;
+    if (model && model !== 'default') return model;
+  }
+  return '';
+}
 
 function startDetached(script, args = []) {
   const child = spawn(process.execPath, [path.join(SKILL_DIR, script), ...args], { detached: true, stdio: 'ignore' });
@@ -228,7 +255,19 @@ async function main() {
   }
   let h = {};
   try { h = JSON.parse(raw || '{}'); } catch { /* keep empty */ }
-  if (h && h.hook_event_name) { try { appendEvent(toEvent(h)); } catch { /* never block Claude */ } }
+  if (h && h.hook_event_name && mode !== 'route') { try { appendEvent(toEvent(h)); } catch { /* never block Claude */ } }
+  if (mode === 'route') {
+    // Grade the request and, when the conversation's model does not fit it, tell Claude which helper to use.
+    const cfg = config();
+    if (cfg.autoRoute === false || !h.prompt) return;
+    if (/^\s*</.test(h.prompt)) return;
+    const main = conversationModel(h);
+    const r = routeNote(cleanPrompt(h.prompt), main || 'claude-opus', { plugin: fromPlugin });
+    if (!r.grade) return;
+    try { appendEvent({ ts: Date.now(), ev: 'Route', sid: h.session_id, cwd: h.cwd, level: r.level, model: r.model, main, noted: !!r.note }); } catch { /* ignore */ }
+    if (r.note) process.stdout.write(`${r.note}\n`);
+    return;
+  }
   if (mode === 'session-start') {
     const cfg = config();
     try { rotateIfBig(FILES.events, MAX_EVENTS_BYTES); rotateIfBig(FILES.termLog, MAX_TERMLOG_BYTES); } catch { /* ignore */ }
